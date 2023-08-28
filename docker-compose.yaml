@@ -1,0 +1,16 @@
+version: '3.9'
+services:
+  app:
+    image: aldiramdan/sb-hospital
+    container_name: sb-hospital
+    tty: true
+    ports:
+      - '8080:8061'
+    restart: on-failure
+    networks:
+      - sbdev
+
+# Networks to be created to facilitate communication between containers
+networks:
+  sbdev:
+    driver: bridge
