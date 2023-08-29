@@ -67,11 +67,4 @@ public class CustomExceptionHandler {
         responseError = new ResponseError(422, LocalDateTime.now(), e.getMessage(), null);
         return ResponseEntity.status(responseError.getCode()).body(responseError);
     }
-
-    @ExceptionHandler(value = IllegalStateException.class)
-    public ResponseEntity<ResponseError> handleIllegalStateException(IllegalStateException e) {
-        log.warn("IllegalStateException: {}", e.getMessage());
-        responseError = new ResponseError(500, LocalDateTime.now(), e.getMessage(), null);
-        return ResponseEntity.status(responseError.getCode()).body(responseError);
-    }
 }
