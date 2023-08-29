@@ -145,7 +145,6 @@ public class DiseaseControllerTest {
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
 
-
         verify(diseaseService, times(1)).add(request);
     }
 
@@ -187,7 +186,6 @@ public class DiseaseControllerTest {
                 .andExpect(jsonPath("$.code").value(responseData.getCode()))
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
-
 
         verify(diseaseService, times(1)).update(id.toString(), request);
     }

@@ -188,7 +188,6 @@ public class MedicineControllerTest {
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
 
-
         verify(medicineService, times(1)).update(id.toString(), request);
     }
 

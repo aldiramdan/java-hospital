@@ -154,7 +154,6 @@ public class TreatmentControllerTest {
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
 
-
         verify(treatmentService, times(1)).add(request);
     }
 
@@ -209,7 +208,6 @@ public class TreatmentControllerTest {
                 .andExpect(jsonPath("$.code").value(responseData.getCode()))
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
-
 
         verify(treatmentService, times(1)).update(id.toString(), request);
     }

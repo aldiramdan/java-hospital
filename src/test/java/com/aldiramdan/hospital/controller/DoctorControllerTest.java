@@ -146,7 +146,6 @@ public class DoctorControllerTest {
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
 
-
         verify(doctorService, times(1)).add(request);
     }
 
@@ -191,7 +190,6 @@ public class DoctorControllerTest {
                 .andExpect(jsonPath("$.code").value(responseData.getCode()))
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
-
 
         verify(doctorService, times(1)).update(id.toString(), request);
     }
