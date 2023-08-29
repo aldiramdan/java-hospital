@@ -47,13 +47,6 @@ public class CustomExceptionHandler {
         return ResponseEntity.badRequest().body(responseError);
     }
 
-    @ExceptionHandler(value = UnauthorizedException.class)
-    public ResponseEntity<ResponseError> handleUnauthorized(UnauthorizedException e) {
-        log.warn("UnauthorizedException: {}", e.getMessage());
-        responseError = new ResponseError(401, LocalDateTime.now(), e.getMessage(), null);
-        return ResponseEntity.status(responseError.getCode()).body(responseError);
-    }
-
     @ExceptionHandler(value = NotFoundException.class)
     public ResponseEntity<ResponseError> handleNotFound(NotFoundException e) {
         log.warn("NotFoundException: {}", e.getMessage());
