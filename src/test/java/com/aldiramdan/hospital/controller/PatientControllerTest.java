@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -147,6 +148,27 @@ public class PatientControllerTest {
 
 
         verify(patientService, times(1)).add(request);
+    }
+
+    @Test
+    public void whenAddRequestToPatient_thenFailureResponse() throws Exception {
+        PatientRequest request = new PatientRequest();
+        request.setName("John Doe1");
+        request.setAge(-21);
+        request.setAddress("");
+
+        when(patientService.add(request)).thenThrow(MethodArgumentNotValidException.class);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/patient")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").value("Error validation"))
+                .andExpect(jsonPath("$.error.name").value("name must be alphabet"))
+                .andExpect(jsonPath("$.error.age").value("age must be positive"))
+                .andExpect(jsonPath("$.error.address").value("address is required"));
     }
 
     @Test

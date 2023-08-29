@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -155,6 +156,31 @@ public class TreatmentControllerTest {
 
 
         verify(treatmentService, times(1)).add(request);
+    }
+
+    @Test
+    public void whenAddRequestToTreatment_thenFailureResponse() throws Exception {
+        String patientId = "wrong id doctor";
+        String doctorId = "wrong id patient";
+        List<DiseaseRequest> diseases = new ArrayList<>();
+
+        TreatmentRequest request = new TreatmentRequest();
+        request.setPatientId(patientId);
+        request.setDoctorId(doctorId);
+        request.setDisease(diseases);
+
+        when(treatmentService.add(request)).thenThrow(MethodArgumentNotValidException.class);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/treatment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").value("Error validation"))
+                .andExpect(jsonPath("$.error.disease").value("must not be empty"))
+                .andExpect(jsonPath("$.error.patientId").value("patient must be uuid"))
+                .andExpect(jsonPath("$.error.doctorId").value("doctor must be uuid"));
     }
 
     @Test

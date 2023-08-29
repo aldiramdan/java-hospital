@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -146,6 +147,25 @@ public class MedicineControllerTest {
 
 
         verify(medicineService, times(1)).add(request);
+    }
+
+    @Test
+    public void whenAddRequestToMedicine_thenFailureResponse() throws Exception {
+        MedicineRequest request = new MedicineRequest();
+        request.setName("Paracetamol1");
+        request.setPrice(-4355);
+
+        when(medicineService.add(request)).thenThrow(MethodArgumentNotValidException.class);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/medicine")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(HttpStatus.BAD_REQUEST.value()))
+                .andExpect(jsonPath("$.message").value("Error validation"))
+                .andExpect(jsonPath("$.error.name").value("name must be alphabet"))
+                .andExpect(jsonPath("$.error.price").value("price must be positive"));
     }
 
     @Test
