@@ -1,8 +1,11 @@
 package com.aldiramdan.hospital.controller;
 
+import com.aldiramdan.hospital.exception.custom.NotFoundException;
+import com.aldiramdan.hospital.exception.custom.NotProcessException;
 import com.aldiramdan.hospital.model.dto.request.DiseaseRequest;
 import com.aldiramdan.hospital.model.dto.request.TreatmentRequest;
 import com.aldiramdan.hospital.model.dto.response.ResponseData;
+import com.aldiramdan.hospital.model.entity.Patient;
 import com.aldiramdan.hospital.model.entity.Treatment;
 import com.aldiramdan.hospital.service.TreatmentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,6 +83,24 @@ public class TreatmentControllerTest {
                 .andExpect(jsonPath("$.code").value(responseData.getCode()))
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
+
+        verify(treatmentService, times(1)).getById(id.toString());
+    }
+
+    @Test
+    public void whenGetByIdRequestToTreatment_thenNotFoundResponse() throws Exception {
+        UUID id = UUID.randomUUID();
+        Patient patient = new Patient();
+        patient.setId(id.toString());
+
+        when(treatmentService.getById(id.toString())).thenThrow(new NotFoundException("Treatment not found"));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/treatment/{id}", id))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
+                .andExpect(jsonPath("$.message").value("Treatment not found"))
+                .andExpect(jsonPath("$.error").isEmpty());
 
         verify(treatmentService, times(1)).getById(id.toString());
     }
@@ -186,6 +207,22 @@ public class TreatmentControllerTest {
     }
 
     @Test
+    public void whenDeleteRequestToTreatment_thenIsAlreadyDeletedResponse() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        when(treatmentService.delete(id.toString())).thenThrow(new NotProcessException("Treatment is already deleted"));
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/treatment/{id}", id))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(HttpStatus.UNPROCESSABLE_ENTITY.value()))
+                .andExpect(jsonPath("$.message").value("Treatment is already deleted"))
+                .andExpect(jsonPath("$.error").isEmpty());
+
+        verify(treatmentService, times(1)).delete(id.toString());
+    }
+
+    @Test
     public void whenRecoveryRequestToTreatment_thenCorrectResponse() throws Exception {
         UUID id = UUID.randomUUID();
 
@@ -199,6 +236,22 @@ public class TreatmentControllerTest {
                 .andExpect(jsonPath("$.code").value(responseData.getCode()))
                 .andExpect(jsonPath("$.message").value(responseData.getMessage()))
                 .andExpect(jsonPath("$.data").value(responseData.getData()));
+
+        verify(treatmentService, times(1)).recovery(id.toString());
+    }
+
+    @Test
+    public void whenRecoveryRequestToTreatment_thenIsAlreadyRecoveredResponse() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        when(treatmentService.recovery(id.toString())).thenThrow(new NotProcessException("Treatment is already recovered"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/treatment/{id}", id))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(HttpStatus.UNPROCESSABLE_ENTITY.value()))
+                .andExpect(jsonPath("$.message").value("Treatment is already recovered"))
+                .andExpect(jsonPath("$.error").isEmpty());
 
         verify(treatmentService, times(1)).recovery(id.toString());
     }
