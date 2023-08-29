@@ -11,11 +11,12 @@ import lombok.NoArgsConstructor;
 public class DoctorRequest {
     @NotBlank(message = "name is required")
     @Size(min = 3, max = 125, message="name must have \\{{min}\\} - \\{{max}\\} characters")
+    @Pattern(regexp = "^[a-zA-Z\s.]+$", message = "name must be alphabet")
     private String name;
 
     @NotBlank(message = "specialization is required")
     @Size(min = 3, max = 30, message="Key must have \\{{min}\\} - \\{{max}\\} characters")
-    @Pattern(regexp = "^[a-zA-Z]+$", message = "specialization must be alphabet")
+    @Pattern(regexp = "^[a-zA-Z\s]+$", message = "specialization must be alphabet")
     private String specialization;
 
     @NotNull(message = "consultationFee is required")
