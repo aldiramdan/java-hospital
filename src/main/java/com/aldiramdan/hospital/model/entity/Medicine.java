@@ -23,10 +23,9 @@ public class Medicine {
 
     private Boolean isDeleted = false;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(nullable = false, updatable = false)
     private Date createdAt;
 
-    @Column(name = "updated_at")
     private Date updatedAt;
 
     @PrePersist
