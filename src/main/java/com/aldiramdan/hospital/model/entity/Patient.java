@@ -21,7 +21,7 @@ public class Patient {
     @Column(nullable = false)
     private int age;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String address;
 
     private Boolean isDeleted = false;
