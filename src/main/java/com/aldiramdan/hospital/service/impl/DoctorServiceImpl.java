@@ -77,7 +77,7 @@ public class DoctorServiceImpl implements DoctorService {
         doctorValidator.validateDoctorNotFound(findDoctor);
         doctorValidator.validateDoctorIsAlreadyDeleted(findDoctor.get());
 
-        Doctor doctor = new Doctor();
+        Doctor doctor = findDoctor.get();
         doctor.setName(request.getName());
         doctor.setSpecialization(request.getSpecialization());
         doctor.setConsultationFee(request.getConsultationFee());
