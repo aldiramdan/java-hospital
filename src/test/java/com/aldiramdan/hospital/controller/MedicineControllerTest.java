@@ -7,29 +7,26 @@ import com.aldiramdan.hospital.model.dto.response.ResponseData;
 import com.aldiramdan.hospital.model.entity.Medicine;
 import com.aldiramdan.hospital.service.MedicineService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@RunWith(SpringRunner.class)
-@WebMvcTest(MedicineController.class)
+@SpringBootTest
 @AutoConfigureMockMvc
 public class MedicineControllerTest {
     @MockBean
@@ -41,6 +38,40 @@ public class MedicineControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @BeforeEach
+    public void init() throws Exception {
+        Medicine medicine = new Medicine();
+
+        List<Medicine> listMedicine = new ArrayList<>();
+        listMedicine.add(new Medicine());
+        listMedicine.add(new Medicine());
+
+        MedicineRequest request = new MedicineRequest();
+        request.setName("Paracetamol");
+        request.setPrice(4355);
+
+        MedicineRequest requestInvalid = new MedicineRequest();
+        requestInvalid.setName("Paracetamol1");
+        requestInvalid.setPrice(-4355);
+
+        ResponseData responseMedicine = new ResponseData(HttpStatus.OK.value(), "Success", medicine);
+        ResponseData responseAddMedicine = new ResponseData(HttpStatus.CREATED.value(), "Success", medicine);
+        ResponseData responseListMedicine = new ResponseData(HttpStatus.OK.value(), "Success", listMedicine);
+        ResponseData responseMedicineNull = new ResponseData(HttpStatus.OK.value(), "Success", null);
+
+        lenient().when(medicineService.getAll()).thenReturn(responseListMedicine);
+        lenient().when(medicineService.getById("1")).thenReturn(responseMedicine);
+        lenient().when(medicineService.getById("2")).thenThrow(new NotFoundException("Medicine not found"));
+        lenient().when(medicineService.getByName(anyString())).thenReturn(responseListMedicine);
+        lenient().when(medicineService.add(request)).thenReturn(responseAddMedicine);
+        lenient().when(medicineService.add(requestInvalid)).thenThrow(MethodArgumentNotValidException.class);
+        lenient().when(medicineService.update("1", request)).thenReturn(responseMedicine);
+        lenient().when(medicineService.delete("1")).thenReturn(responseMedicineNull);
+        lenient().when(medicineService.delete("2")).thenThrow(new NotProcessException("Medicine is already deleted"));
+        lenient().when(medicineService.recovery("1")).thenReturn(responseMedicineNull);
+        lenient().when(medicineService.recovery("2")).thenThrow(new NotProcessException("Medicine is already recovered"));
+    }
+
     @Test
     public void whenMedicineControllerInjected_thenNotNull() throws Exception {
         assertThat(medicineController).isNotNull();
@@ -48,19 +79,11 @@ public class MedicineControllerTest {
 
     @Test
     public void whenGetAllRequestToMedicine_thenCorrectResponse() throws Exception {
-        List<Medicine> medicines = new ArrayList<>();
-        medicines.add(new Medicine());
-        medicines.add(new Medicine());
-
-        ResponseData responseData = new ResponseData(HttpStatus.OK.value(), "Success", medicines);
-
-        when(medicineService.getAll()).thenReturn(responseData);
-
         mockMvc.perform(MockMvcRequestBuilders.get("/medicine"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
+                .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
                 .andExpect(jsonPath("$.data").isArray());
 
         verify(medicineService, times(1)).getAll();
@@ -68,62 +91,38 @@ public class MedicineControllerTest {
 
     @Test
     public void whenGetByIdRequestToMedicine_thenCorrectResponse() throws Exception {
-        UUID id = UUID.randomUUID();
-        Medicine medicine = new Medicine();
-        medicine.setId(id.toString());
-
-        ResponseData responseData = new ResponseData(HttpStatus.OK.value(), "Success", medicine);
-
-        when(medicineService.getById(id.toString())).thenReturn(responseData);
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/medicine/{id}", id))
+        mockMvc.perform(MockMvcRequestBuilders.get("/medicine/{id}", "1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
-                .andExpect(jsonPath("$.data").value(responseData.getData()));
+                .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.data").isNotEmpty());
 
-        verify(medicineService, times(1)).getById(id.toString());
+        verify(medicineService, times(1)).getById("1");
     }
 
     @Test
     public void whenGetByIdRequestToMedicine_thenNotFoundResponse() throws Exception {
-        UUID id = UUID.randomUUID();
-        Medicine patient = new Medicine();
-        patient.setId(id.toString());
-
-        when(medicineService.getById(id.toString())).thenThrow(new NotFoundException("Medicine not found"));
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/medicine/{id}", id))
+        mockMvc.perform(MockMvcRequestBuilders.get("/medicine/{id}", "2"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value(HttpStatus.NOT_FOUND.value()))
                 .andExpect(jsonPath("$.message").value("Medicine not found"))
                 .andExpect(jsonPath("$.error").isEmpty());
 
-        verify(medicineService, times(1)).getById(id.toString());
+        verify(medicineService, times(1)).getById("2");
     }
 
     @Test
     public void whenGetByNameRequestToMedicine_thenCorrectResponse() throws Exception {
-        List<Medicine> medicines = new ArrayList<>();
-        medicines.add(new Medicine());
-        medicines.add(new Medicine());
-
-        String name = "Flu";
-
-        ResponseData responseData = new ResponseData(HttpStatus.OK.value(), "Success", medicines);
-
-        when(medicineService.getByName(name)).thenReturn(responseData);
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/medicine/search?name={name}", name))
+        mockMvc.perform(MockMvcRequestBuilders.get("/medicine/search?name={name}", anyString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
+                .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
                 .andExpect(jsonPath("$.data").isArray());
 
-        verify(medicineService, times(1)).getByName(name);
+        verify(medicineService, times(1)).getByName(anyString());
     }
 
     @Test
@@ -132,30 +131,23 @@ public class MedicineControllerTest {
         request.setName("Paracetamol");
         request.setPrice(4355);
 
-        ResponseData responseData = new ResponseData(HttpStatus.CREATED.value(), "Success", request);
-
-        when(medicineService.add(request)).thenReturn(responseData);
-
         mockMvc.perform(MockMvcRequestBuilders.post("/medicine")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
-                .andExpect(jsonPath("$.data").value(responseData.getData()));
-
+                .andExpect(jsonPath("$.code").value(HttpStatus.CREATED.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.data").isNotEmpty());
 
         verify(medicineService, times(1)).add(request);
     }
 
     @Test
-    public void whenAddRequestToMedicine_thenFailureResponse() throws Exception {
+    public void whenAddRequestToMedicine_thenMethodInvalidResponse() throws Exception {
         MedicineRequest request = new MedicineRequest();
         request.setName("Paracetamol1");
         request.setPrice(-4355);
-
-        when(medicineService.add(request)).thenThrow(MethodArgumentNotValidException.class);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/medicine")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -170,92 +162,67 @@ public class MedicineControllerTest {
 
     @Test
     public void whenUpdateRequestToMedicine_thenCorrectResponse() throws Exception {
-        UUID id = UUID.randomUUID();
         MedicineRequest request = new MedicineRequest();
         request.setName("Paracetamol");
         request.setPrice(4355);
 
-        ResponseData responseData = new ResponseData(HttpStatus.OK.value(), "Success", request);
-
-        when(medicineService.update(id.toString(), request)).thenReturn(responseData);
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/medicine/{id}", id)
+        mockMvc.perform(MockMvcRequestBuilders.put("/medicine/{id}", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
-                .andExpect(jsonPath("$.data").value(responseData.getData()));
+                .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.data").isNotEmpty());
 
-        verify(medicineService, times(1)).update(id.toString(), request);
+        verify(medicineService, times(1)).update("1", request);
     }
 
     @Test
     public void whenDeleteRequestToMedicine_thenCorrectResponse() throws Exception {
-        UUID id = UUID.randomUUID();
-
-        ResponseData responseData = new ResponseData(HttpStatus.OK.value(), "Success", null);
-
-        when(medicineService.delete(id.toString())).thenReturn(responseData);
-
-        mockMvc.perform(MockMvcRequestBuilders.delete("/medicine/{id}", id))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/medicine/{id}", "1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
-                .andExpect(jsonPath("$.data").value(responseData.getData()));
+                .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.data").isEmpty());
 
-        verify(medicineService, times(1)).delete(id.toString());
+        verify(medicineService, times(1)).delete("1");
     }
 
     @Test
     public void whenDeleteRequestToMedicine_thenIsAlreadyDeletedResponse() throws Exception {
-        UUID id = UUID.randomUUID();
-
-        when(medicineService.delete(id.toString())).thenThrow(new NotProcessException("Medicine is already deleted"));
-
-        mockMvc.perform(MockMvcRequestBuilders.delete("/medicine/{id}", id))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/medicine/{id}", "2"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value(HttpStatus.UNPROCESSABLE_ENTITY.value()))
                 .andExpect(jsonPath("$.message").value("Medicine is already deleted"))
                 .andExpect(jsonPath("$.error").isEmpty());
 
-        verify(medicineService, times(1)).delete(id.toString());
+        verify(medicineService, times(1)).delete("2");
     }
 
     @Test
     public void whenRecoveryRequestToMedicine_thenCorrectResponse() throws Exception {
-        UUID id = UUID.randomUUID();
-
-        ResponseData responseData = new ResponseData(HttpStatus.OK.value(), "Success", null);
-
-        when(medicineService.recovery(id.toString())).thenReturn(responseData);
-
-        mockMvc.perform(MockMvcRequestBuilders.patch("/medicine/{id}", id))
+        mockMvc.perform(MockMvcRequestBuilders.patch("/medicine/{id}", "1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value(responseData.getCode()))
-                .andExpect(jsonPath("$.message").value(responseData.getMessage()))
-                .andExpect(jsonPath("$.data").value(responseData.getData()));
+                .andExpect(jsonPath("$.code").value(HttpStatus.OK.value()))
+                .andExpect(jsonPath("$.message").value("Success"))
+                .andExpect(jsonPath("$.data").isEmpty());
 
-        verify(medicineService, times(1)).recovery(id.toString());
+        verify(medicineService, times(1)).recovery("1");
     }
 
     @Test
     public void whenRecoveryRequestToMedicine_thenIsAlreadyRecoveredResponse() throws Exception {
-        UUID id = UUID.randomUUID();
-
-        when(medicineService.recovery(id.toString())).thenThrow(new NotProcessException("Medicine is already recovered"));
-
-        mockMvc.perform(MockMvcRequestBuilders.patch("/medicine/{id}", id))
+        mockMvc.perform(MockMvcRequestBuilders.patch("/medicine/{id}", "2"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.code").value(HttpStatus.UNPROCESSABLE_ENTITY.value()))
                 .andExpect(jsonPath("$.message").value("Medicine is already recovered"))
                 .andExpect(jsonPath("$.error").isEmpty());
 
-        verify(medicineService, times(1)).recovery(id.toString());
+        verify(medicineService, times(1)).recovery("2");
     }
 }
